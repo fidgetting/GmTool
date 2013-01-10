@@ -1,7 +1,7 @@
 package types
 
 class NPC(val first: String, val last: String, val ethnicity: String,
-    val traits: Map[String, String], var notes: List[String] = List[String]()) {
+    val traits: Map[String, String], var notes: Seq[String] = Nil) {
   
   def toXml() =
     <npc firstName={first} lastName={last} ethnicity={ethnicity}>
@@ -28,8 +28,8 @@ object NPC {
     new NPC((node \ "@firstName").text,
         (node \ "@lastname").text,
         (node \ "@ethnicity").text,
-        (node \\ "trait").foldLeft(Map[String, String]())(
-          (accum, curr) => accum + ((curr \ "@name").text -> (curr \ "@value").text)),
-        (node \\ "note").foldLeft(List[String]())(
-          (accum, curr) => accum :+ curr.text))
+        (for(curr <- node \\ "trait")
+          yield (curr \ "@name").text -> (curr \ "@value").text) toMap,
+        (for(curr <- node \\ "note")
+          yield curr.text))
 }

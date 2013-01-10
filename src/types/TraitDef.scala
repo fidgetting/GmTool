@@ -1,8 +1,8 @@
 package types
 
 class TraitDef(val name: String,
-    val names: List[String],
-    val determ: List[(Double, String)]) {
+    val names:  Seq[String],
+    val determ: Seq[(Double, String)]) {
   
   def apply(): String = {
     val d = Workspace.Double()
@@ -24,25 +24,19 @@ object TraitDef {
   def apply(node: scala.xml.Node): TraitDef = {
     var total = 0.0
     
-    val name = (node \ "@name").text
-    val names =
-      (node \\ "trait").foldLeft(List[String]())(
-          (accum, curr) => (curr \\ "@value").text :: accum)
+    def calDeterm(incF: scala.xml.Node => Double): Seq[(Double, String)] =
+      for(curr <- (node \\ "trait").reverse) yield {
+          total = incF(node)
+          (total, (curr \\ "@value").text)
+      }
     
-    val inc = 100.0 / names.length.toDouble
+    val name  = (node \ "@name").text
+    val names = for(curr <- node \\ "trait") yield (curr \\ "@value").text
+    
+    val inc = 100.0 / names.length.toDouble 
     val determ =
-      if((node \\ "@dist").text == "flat")
-        (node \\ "trait").foldLeft(List[(Double, String)]())(
-            (accum, curr) => {
-              total = total + inc
-              accum :+ (total, (curr \\ "@value").text)
-            })
-      else
-        (node \\ "trait").foldLeft(List[(Double, String)]())(
-            (accum, curr) => {
-              total = total + (curr \\ "@chance").text.toDouble / 100.0
-              accum :+ (total, (curr \\ "@value").text)
-            })
+      if((node \\ "@dist").text == "flat") calDeterm((node) => total + inc)
+      else calDeterm((node) => total + (node \\ "@chance").text.toDouble / 100.0)
     
     new TraitDef(name, names, determ)
   }

@@ -14,10 +14,11 @@ class Workspace(val first: NameSet, val last: NameSet,
     val ethnicity  = if(givenEthnicity == null) worlds(world).races()    else givenEthnicity
     val firstName  = if(givenFirst     == null) first(ethnicity, gender) else givenFirst
     val lastName   = if(givenLast      == null) last (ethnicity, gender) else givenLast
-    val passTraits = worlds(world).traits.foldLeft(Map[String, String]())(
-        (accum, curr) => accum + (curr -> (
+    val passTraits = 
+      (for(curr <- worlds(world).traits)
+        yield curr -> (
           if(givenTraits != null && givenTraits.contains(curr)) givenTraits(curr)
-          else traits(curr)())))
+          else traits(curr)())) toMap
     
     NPC(firstName, lastName, ethnicity, passTraits)
   }
@@ -41,12 +42,10 @@ object Workspace {
     new Workspace(
           NameSet((serialized \ "names" \ "first")(0)),
           NameSet((serialized \ "names" \ "last" )(0)),
-          (serialized \ "possible_traits" \\ "trait_def").
-            foldLeft(Map[String, TraitDef]())(
-              (accum, node) => accum + ((node \ "@name").text -> TraitDef(node))),
-          (serialized \\ "world").
-            foldLeft(Map[String, World]())(
-              (accum, node) => accum + ((node \ "@name").text -> World(node))))
+          (for(node <- (serialized \ "possible_traits" \\ "trait_def"))
+            yield (node \ "@name").text -> TraitDef(node) ) toMap ,
+          (for(node <- (serialized \\ "world"))
+            yield (node \ "@name").text ->    World(node) ) toMap )
   
   def apply(str: String): Workspace =
     Workspace(scala.xml.XML.loadFile(str))

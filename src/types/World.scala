@@ -1,6 +1,6 @@
 package types
 
-class World(val name: String, val races: TraitDef, val traits: List[String]) {
+class World(val name: String, val races: TraitDef, val traits: Seq[String]) {
   
   override def toString =
     name + "{\n" +
@@ -16,6 +16,6 @@ object World {
     new World(
         (node \ "@name").text,
         TraitDef((node \ "trait_def")(0)),
-        (node \ "traits" \ "trait").foldLeft(List[String]())(
-          (accum, curr) => (curr \ "@name").text :: accum))
+        for(curr <- (node \ "traits" \ "trait"))
+          yield (curr \ "@name").text)
 }

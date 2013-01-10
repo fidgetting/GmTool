@@ -5,8 +5,8 @@ case class Male   extends Gender
 case class Female extends Gender
 
 class NameSet(val name: String,
-    val male: Map[String, List[String]],
-    val female: Map[String, List[String]]) {
+    val male:   Map[String, Seq[String]] ,
+    val female: Map[String, Seq[String]] ) {
   
   def apply(ethnicity: String, gender: Gender): String = gender match {
     case Male()   => male  (ethnicity)(Workspace.Int(male  (ethnicity).length))
@@ -16,19 +16,21 @@ class NameSet(val name: String,
 
 object NameSet {
   
-  def apply(node: scala.xml.Node): NameSet =
+  def apply(node: scala.xml.Node): NameSet = {
+    def isMale(str: scala.xml.NodeSeq): Boolean =
+      str.text == "m" || str.text == "mf"
+    def isFemale(str: scala.xml.NodeSeq): Boolean =
+      str.text == "f" || str.text == "mf"
+    
     new NameSet(
         (node \ "@name").text,
-        (node \\ "ethnicity").foldLeft(Map[String, List[String]]())(
-          (accum, curr) => accum + (
-            (curr \ "@name").text ->
-               (curr \\ "name").filter(
-                 (name) => (name \ "@gender").text == "m" || (name \ "@gender") == "mf").map(
-                   (name) => (name \ "@name").text).toList)),
-        (node \\ "ethnicity").foldLeft(Map[String, List[String]]())(
-          (accum, curr) => accum + (
-            (curr \ "@name").text ->
-              (curr \\ "name").filter(
-                (name) => (name \ "@gender").text == "f" || (name \ "@gender") == "mf").map(
-                  (name) => (name \ "@name").text).toList)))
+        (for(elem <- node \\ "ethnicity")
+          yield (elem \ "@name").text ->
+            (for(curr <- elem \\ "name" if isMale(curr \ "@gender"))
+              yield (curr \"@name").text)) toMap ,
+        (for(elem <- node \\ "ethnicity")
+          yield (elem \ "@name").text ->
+            (for(curr <- elem \\ "name" if isFemale(curr \ "@gender"))
+              yield (curr \"@name").text)) toMap )
+  }
 }
